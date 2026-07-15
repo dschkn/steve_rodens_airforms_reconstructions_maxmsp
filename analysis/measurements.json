@@ -1,0 +1,42 @@
+{
+  "source_wav": {
+    "sample_rate_hz": 44100,
+    "channels": 1,
+    "bit_depth": 16,
+    "duration_seconds": 77.062449,
+    "smoothed_rms_peak_times_seconds": [2.85, 15.3, 29.4, 45.5, 58.5, 70.1],
+    "peak_intervals_seconds": [12.45, 14.1, 16.1, 13.0, 11.6],
+    "peak_interval_mean_seconds": 13.45,
+    "peak_interval_median_seconds": 13.0,
+    "peak_interval_cv": 0.12,
+    "residual_bands_hz": [40.8, 49.8, 55.18, 75.37, 84.11, 104.97, 205.24, 838.45],
+    "rumble_modulation_hz": [5.5, 8.0, 12.2, 19.0],
+    "radio_mid_modulation_range_hz": [0.6, 5.8]
+  },
+  "original_sdif": {
+    "frame_type": "1TRC",
+    "frame_count": 396,
+    "frame_step_seconds": 0.01,
+    "rows_per_frame": 8
+  },
+  "new_sdif": {
+    "frame_type": "1TRC",
+    "frame_count": 345,
+    "frame_step_seconds": 0.01,
+    "segments": [
+      {"start_seconds": 0.916558, "end_seconds": 2.946558, "frames": 204, "tracked_components": 13},
+      {"start_seconds": 5.796558, "end_seconds": 7.196558, "frames": 141, "tracked_components": 17}
+    ],
+    "segment_A_tracked_frequencies_hz": [85.185, 126.342, 183.496, 296.601, 550.306, 604.573, 964.505, 1219.703, 1417.709, 1660.675, 1856.011, 3422.401, 15723.265],
+    "segment_B_tracked_frequencies_hz": [62.574, 94.336, 126.306, 183.461, 241.125, 296.552, 550.214, 629.678, 840.503, 1001.296, 1023.019, 1219.705, 3421.926, 5471.967, 7566.802, 8183.14, 8818.86]
+  },
+  "model_v2": {
+    "independent_spectral_layers": 3,
+    "partials_per_layer": 24,
+    "crystallisation_patterns": ["low-to-high", "high-to-low", "centre-out", "edges-in", "constellation", "scatter"],
+    "noise_families": ["breath", "rumble", "radio", "dust", "A_x_B_intermodulation"],
+    "default_tempo": 1.0,
+    "default_density": 0.82,
+    "default_seed": 22004
+  }
+}
