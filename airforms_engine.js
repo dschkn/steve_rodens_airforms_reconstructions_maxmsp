@@ -1,6 +1,8 @@
 /*
     airforms_engine.js — Airforms reconstruction v2
 
+    Copyright © 2026 Dmitrii Shchukin. All rights reserved.
+
     The JS object never generates audio. It schedules three 24-partial MSP
     banks and four families of noise events. Spectra crystallise in a new
     order on every breath instead of appearing as one fixed block.

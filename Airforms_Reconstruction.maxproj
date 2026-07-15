@@ -27,7 +27,8 @@
   "layout": {},
   "searchpath": {},
   "details": {
-    "author": "D. Shchukin / reconstructed with ChatGPT",
+    "author": "Dmitrii Shchukin",
+    "copyright": "Copyright © 2026 Dmitrii Shchukin",
     "description": "24-partial crystallising reconstruction of Steve Roden's Airforms"
   }
 }
