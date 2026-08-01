@@ -1,0 +1,245 @@
+{
+  "schema": "airforms.behavioural-model.v1.1",
+  "analysis_version": "1.1",
+  "authorship": "Analysis and behavioural model: Dmitrii Shchukin",
+  "source": {
+    "work": "Airforms",
+    "artist": "Steve Roden",
+    "edition": "LINE_022 stereo edition",
+    "duration_seconds": 3374.293,
+    "official_reference": "https://lineimprint.bandcamp.com/album/airforms",
+    "analysis_channels": {
+      "event_and_spectral_analysis": "mono sum at 22050 Hz",
+      "stereo_comparison": "left and right at 11025 Hz"
+    },
+    "recording_included_in_project": false
+  },
+  "method": {
+    "interpretive_unit": "inferred breath-like spectral swell, not a literal respiratory gesture",
+    "spectral_map": {
+      "frequency_range_hz": [
+        40.0,
+        10000.0
+      ],
+      "bands_per_octave": 12,
+      "time_step_seconds": 0.1,
+      "fft_size": 8192
+    },
+    "event_detector": {
+      "smoothing_seconds": 1.6,
+      "baseline_seconds": 42.0,
+      "minimum_peak_distance_seconds": 5.5,
+      "minimum_prominence_robust_z": 0.34
+    },
+    "caution": "Processing, loop overlap, stereo reorganisation and room/object filtering prevent literal identification of inhalation and exhalation."
+  },
+  "global_behaviour": {
+    "inferred_swell_count": 136,
+    "crest_interval_seconds": {
+      "count": 135,
+      "mean": 24.721,
+      "standard_deviation": 1.838,
+      "coefficient_of_variation": 0.0744,
+      "p05": 23.4,
+      "p10": 23.6,
+      "p25": 23.6,
+      "median": 24.2,
+      "p75": 25.9,
+      "p90": 26.06,
+      "p95": 26.13,
+      "four_component_lognormal_mixture": [
+        {
+          "weight": 0.3583,
+          "lognormal_mu": 3.16032,
+          "lognormal_sigma": 0.00907,
+          "median_seconds": 23.578
+        },
+        {
+          "weight": 0.3157,
+          "lognormal_mu": 3.18599,
+          "lognormal_sigma": 0.00493,
+          "median_seconds": 24.191
+        },
+        {
+          "weight": 0.3111,
+          "lognormal_mu": 3.25753,
+          "lognormal_sigma": 0.00592,
+          "median_seconds": 25.985
+        },
+        {
+          "weight": 0.0148,
+          "lognormal_mu": 3.61356,
+          "lognormal_sigma": 0.01083,
+          "median_seconds": 37.098
+        }
+      ]
+    },
+    "alternating_phase_interval_seconds": {
+      "p05": 8.8,
+      "p10": 9.1,
+      "p25": 9.5,
+      "median": 12.15,
+      "p75": 14.8,
+      "p90": 16.2,
+      "p95": 16.5,
+      "coefficient_of_variation": 0.2579
+    },
+    "expansion_phase_seconds": {
+      "p05": 8.4,
+      "p10": 8.8,
+      "p25": 9.2,
+      "median": 9.5,
+      "p75": 9.7,
+      "p90": 9.96,
+      "p95": 10.43
+    },
+    "contraction_phase_seconds": {
+      "p05": 13.9,
+      "p10": 14.2,
+      "p25": 14.4,
+      "median": 14.8,
+      "p75": 16.2,
+      "p90": 16.5,
+      "p95": 16.83
+    },
+    "median_expansion_share_of_cycle": 0.3822,
+    "successive_interval_correlation": -0.2362,
+    "interval_correlation_at_three_cycle_lag": 0.5697,
+    "three_clock_rotation": "The predominant order is short to medium to long and back to short; interval variation is therefore structured rather than independently random.",
+    "rare_central_dilation": {
+      "count": 2,
+      "median_seconds": 37.1,
+      "form_position": "near the middle of the recording"
+    },
+    "dominant_modulation_periods_seconds": [
+      24.454,
+      12.319,
+      36.409,
+      22.444,
+      14.76,
+      9.204
+    ],
+    "left_right_level_correlation": 0.7864,
+    "interval_transition_model": {
+      "boundaries_seconds": [
+        23.9,
+        24.433
+      ],
+      "labels": [
+        "short",
+        "medium",
+        "long"
+      ],
+      "rows": {
+        "short": {
+          "short": 0.0625,
+          "medium": 0.875,
+          "long": 0.0625
+        },
+        "medium": {
+          "short": 0.0213,
+          "medium": 0.0638,
+          "long": 0.9149
+        },
+        "long": {
+          "short": 0.8958,
+          "medium": 0.0625,
+          "long": 0.0417
+        }
+      }
+    }
+  },
+  "spectral_behaviour": {
+    "median_relative_band_levels_db": {
+      "low_40_220_hz": 0.0,
+      "mid_220_2000_hz": -26.071,
+      "high_2000_10000_hz": -68.306
+    },
+    "observation": "Low, middle and high bands breathe with related but unequal envelopes; upper detail often enters or vanishes independently of the low foundation."
+  },
+  "validation": {
+    "parameter_combinations": 64,
+    "event_count_range": [
+      136,
+      137
+    ],
+    "median_interval_seconds_range": [
+      24.1,
+      24.4
+    ],
+    "coefficient_of_variation_range": [
+      0.0741,
+      0.0949
+    ],
+    "interpretation": "The approximately 24.2-second cycle remains stable across all tested detector settings."
+  },
+  "form_segments": [
+    {
+      "from_minute": 0.003,
+      "to_minute": 7.032,
+      "event_count": 17,
+      "median_interval_seconds": 24.1,
+      "relative_level_db": -3.231
+    },
+    {
+      "from_minute": 7.032,
+      "to_minute": 14.061,
+      "event_count": 17,
+      "median_interval_seconds": 24.2,
+      "relative_level_db": 1.283
+    },
+    {
+      "from_minute": 14.061,
+      "to_minute": 21.09,
+      "event_count": 17,
+      "median_interval_seconds": 24.25,
+      "relative_level_db": 1.332
+    },
+    {
+      "from_minute": 21.09,
+      "to_minute": 28.119,
+      "event_count": 17,
+      "median_interval_seconds": 24.15,
+      "relative_level_db": 1.038
+    },
+    {
+      "from_minute": 28.119,
+      "to_minute": 35.148,
+      "event_count": 17,
+      "median_interval_seconds": 24.2,
+      "relative_level_db": 1.201
+    },
+    {
+      "from_minute": 35.148,
+      "to_minute": 42.177,
+      "event_count": 17,
+      "median_interval_seconds": 24.2,
+      "relative_level_db": 1.218
+    },
+    {
+      "from_minute": 42.177,
+      "to_minute": 49.206,
+      "event_count": 17,
+      "median_interval_seconds": 24.15,
+      "relative_level_db": 0.075
+    },
+    {
+      "from_minute": 49.206,
+      "to_minute": 56.235,
+      "event_count": 17,
+      "median_interval_seconds": 24.15,
+      "relative_level_db": -16.368
+    }
+  ],
+  "generative_tendencies": {
+    "purpose": "Generate related behaviour without reproducing the original event timeline.",
+    "interval_sampling": "Choose the next short, medium or long class from the measured transition model, then sample a small continuous deviation around its fitted centre.",
+    "anti_metric_rule": "Avoid exact duration repetition through approximately 0.5-2.5% within-class variation and occasional departures from the predominant three-class rotation.",
+    "memory_rule": "Preserve the strong short-to-medium-to-long rotation while allowing the transition matrix to interrupt it.",
+    "rare_dilation_rule": "Give approximately 1.5% of primary cycles a duration near 37 seconds.",
+    "envelope_rule": "Use an asymmetrical cycle: expansion normally lasts about 9.5 seconds and contraction about 14.8 seconds.",
+    "phase_relation_rule": "Offset the two principal spectral banks by roughly one expansion phase, then let their independent clocks drift.",
+    "spectral_rule": "Treat partial visibility, entrance order and band-specific level as independent-but-coupled variables.",
+    "segment_rule": "Move between density targets over four-to-nine-minute windows instead of replaying the measured eight-segment level curve."
+  }
+}
