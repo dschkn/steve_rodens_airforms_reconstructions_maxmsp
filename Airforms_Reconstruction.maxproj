@@ -25,6 +25,7 @@
       "README.md": {"kind": "other"},
       "ANALYSIS.md": {"kind": "other"},
       "analysis/analyze_full_recording.py": {"kind": "other"},
+      "analysis/render_project_essay.py": {"kind": "other"},
       "analysis/airforms_full_recording_spectral_map.png": {"kind": "other"},
       "analysis/test_engine_model.js": {"kind": "other"},
       "output/pdf/Airforms_Reconstruction_Description_EN-DE-RU.pdf": {"kind": "other"}
