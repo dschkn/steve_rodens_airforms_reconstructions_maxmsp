@@ -1,11 +1,13 @@
 /*
-    airforms_engine.js — Airforms reconstruction v2
+    airforms_engine.js — Airforms reconstruction v3
 
     Copyright © 2026 Dmitrii Shchukin. All rights reserved.
 
     The JS object never generates audio. It schedules three 24-partial MSP
-    banks and four families of noise events. Spectra crystallise in a new
-    order on every breath instead of appearing as one fixed block.
+    banks and four families of noise events. The primary breath scheduler is
+    inferred from the complete 56:14 LINE recording: three neighbouring cycle
+    classes rotate with rare dilations, while every spectrum crystallises in a
+    new internal order.
 
     outlets 0..2 : setvalue messages for three 24-voice poly~ banks
     outlet 3     : breath / rumble / radio / dust control messages
@@ -31,6 +33,21 @@ var radioTask = null;
 var dustTask = null;
 var eventCount = [0, 0, 0];
 var firstEvent = [true, true, true];
+var primaryClockState = [0, 1];
+var breathClockState = 2;
+var formDensityOffset = -0.06;
+var formDensityTarget = 0.0;
+var formStepsRemaining = 12;
+
+var clockNames = ["short", "medium", "long"];
+var clockCentres = [23578.0, 24191.0, 25985.0];
+var clockSigmas = [0.018, 0.015, 0.018];
+var clockTransitions = [
+    [0.0625, 0.8750, 0.0625],
+    [0.0213, 0.0638, 0.9149],
+    [0.8958, 0.0625, 0.0417]
+];
+var rareDilationProbability = 0.0148;
 
 // A and B combine persistent tracks from the new SDIF with a few older
 // low components and quiet derived sum/double tones. Weights are measured
@@ -90,7 +107,7 @@ var profiles = [
         sparseProbability: 0.18,
         mediumProbability: 0.32,
         dropout: 0.035,
-        firstOffset: 2500
+        firstOffset: 9500
     },
     {
         name: "C-residue",
@@ -188,6 +205,68 @@ function roundTo(value, decimals) {
 
 function scaledTime(milliseconds) {
     return Math.max(5, milliseconds / tempoScale);
+}
+
+function weightedChoice(probabilities) {
+    var roll = randomUnit();
+    var cumulative = 0.0;
+    for (var i = 0; i < probabilities.length; i++) {
+        cumulative += probabilities[i];
+        if (roll <= cumulative) {
+            return i;
+        }
+    }
+    return probabilities.length - 1;
+}
+
+function sampleClockCycle(state) {
+    var current = clamp(Math.floor(state), 0, clockCentres.length - 1);
+    var next = weightedChoice(clockTransitions[current]);
+    if (randomUnit() < rareDilationProbability) {
+        return {
+            name: "dilation",
+            interval: clamp(logNormal(37100.0, 0.020), 35000.0, 39500.0),
+            nextState: next
+        };
+    }
+    return {
+        name: clockNames[current],
+        interval: clamp(logNormal(clockCentres[current], clockSigmas[current]), 22000.0, 28500.0),
+        nextState: next
+    };
+}
+
+function sampleExpansion() {
+    return clamp(logNormal(9500.0, 0.045), 8400.0, 10500.0);
+}
+
+function effectiveDensity() {
+    return clamp(densityValue + formDensityOffset, 0.15, 1.0);
+}
+
+function chooseFormDensityTarget() {
+    var roll = randomUnit();
+    if (roll < 0.18) {
+        return randomRange(-0.22, -0.14);
+    }
+    if (roll < 0.43) {
+        return randomRange(-0.12, -0.05);
+    }
+    if (roll < 0.84) {
+        return randomRange(-0.025, 0.025);
+    }
+    return randomRange(0.035, 0.075);
+}
+
+function advanceFormDensity() {
+    if (formStepsRemaining <= 0) {
+        formDensityTarget = chooseFormDensityTarget();
+        formStepsRemaining = randomInt(10, 22);
+    }
+    formDensityOffset += (formDensityTarget - formDensityOffset) * randomRange(0.10, 0.18);
+    formDensityOffset += gaussian() * 0.0035;
+    formDensityOffset = clamp(formDensityOffset, -0.26, 0.09);
+    formStepsRemaining -= 1;
 }
 
 function shuffle(values) {
@@ -324,6 +403,11 @@ function reset() {
     spareGaussian = null;
     eventCount = [0, 0, 0];
     firstEvent = [true, true, true];
+    primaryClockState = [0, 1];
+    breathClockState = 2;
+    formDensityOffset = -0.06;
+    formDensityTarget = 0.0;
+    formStepsRemaining = 12;
     if (wasRunning) {
         start();
     } else {
@@ -358,16 +442,39 @@ function runVoice(index) {
     }
 
     var profile = profiles[index];
-    var duration = clamp(logNormal(profile.durationMedian, profile.durationSigma), 2600, 20500);
-    var restMultiplier = 1.35 - 0.70 * densityValue;
-    var rest = profile.restMin + exponential(profile.restMean * restMultiplier);
-    rest = clamp(rest, profile.restMin, profile.restMin + profile.restMean * 3.2);
-    var skipChance = (1.0 - densityValue) * 0.48;
+    var primary = index < 2;
+    if (index === 0) {
+        advanceFormDensity();
+    }
+    var localDensity = effectiveDensity();
+    var duration;
+    var rest;
+    var commonPeakTime;
+    var clockCycle = null;
+
+    if (primary) {
+        clockCycle = sampleClockCycle(primaryClockState[index]);
+        primaryClockState[index] = clockCycle.nextState;
+        duration = clockCycle.interval;
+        rest = 0.0;
+        commonPeakTime = sampleExpansion();
+    } else {
+        duration = clamp(logNormal(profile.durationMedian, profile.durationSigma), 2600, 20500);
+        var restMultiplier = 1.35 - 0.70 * localDensity;
+        rest = profile.restMin + exponential(profile.restMean * restMultiplier);
+        rest = clamp(rest, profile.restMin, profile.restMin + profile.restMean * 3.2);
+        commonPeakTime = duration * randomRange(0.66, 0.82);
+    }
+
+    var skipChance = primary ? (1.0 - localDensity) * 0.18 : (1.0 - localDensity) * 0.48;
     var skipped = randomUnit() < skipChance;
 
     if (!skipped) {
         var pattern = crystallisationPattern(PARTIAL_COUNT);
         var activeCount = chooseActiveCount(profile);
+        if (primary && localDensity < 0.42 && activeCount === PARTIAL_COUNT && randomUnit() < 0.55) {
+            activeCount = randomInt(9, 18);
+        }
         var activeOrder = pattern.order.slice(0, activeCount);
         var activeMap = {};
         var rankMap = {};
@@ -378,12 +485,14 @@ function runVoice(index) {
         }
 
         var peak = randomRange(profile.amplitudeMin, profile.amplitudeMax);
-        peak *= 0.62 + 0.52 * densityValue;
+        peak *= 0.62 + 0.52 * localDensity;
         var commonCents = gaussian() * profile.centsJitter * 0.40;
         var spanFraction = pattern.name === "constellation" ? randomRange(0.38, 0.64) : randomRange(0.22, 0.57);
-        var crystallisationSpan = duration * spanFraction;
-        var commonPeakTime = duration * randomRange(0.66, 0.82);
-        var commonHold = duration * randomRange(0.025, 0.095);
+        var crystallisationSpan = commonPeakTime * (primary ? randomRange(0.68, 0.96) : spanFraction);
+        if (!primary) {
+            crystallisationSpan = duration * spanFraction;
+        }
+        var commonHold = primary ? randomRange(120.0, 520.0) : duration * randomRange(0.025, 0.095);
 
         for (p = 0; p < PARTIAL_COUNT; p++) {
             if (!activeMap[p]) {
@@ -394,7 +503,7 @@ function runVoice(index) {
             var rank = rankMap[p];
             var delay;
             if (pattern.name === "constellation" && rank < pattern.seedCount) {
-                delay = randomRange(0, duration * 0.035);
+                delay = randomRange(0, commonPeakTime * 0.045);
             } else {
                 var adjustedRank = rank;
                 var adjustedCount = activeCount;
@@ -403,7 +512,7 @@ function runVoice(index) {
                     adjustedCount = Math.max(2, activeCount - pattern.seedCount + 1);
                 }
                 delay = crystallisationSpan * adjustedRank / Math.max(1, adjustedCount - 1);
-                delay += gaussian() * duration * 0.012;
+                delay += gaussian() * commonPeakTime * 0.018;
             }
             delay = clamp(delay, 0, commonPeakTime - 280);
 
@@ -441,16 +550,32 @@ function runVoice(index) {
 
         firstEvent[index] = false;
         eventCount[index] += 1;
-        outlet(4, [
+        var stateMessage = [
             profile.name,
             "event", eventCount[index],
             "pattern", pattern.name,
             "partials", activeCount,
+            "duration_s", roundTo(duration / 1000.0, 2)
+        ];
+        if (primary) {
+            stateMessage = stateMessage.concat([
+                "clock", clockCycle.name,
+                "expansion_s", roundTo(commonPeakTime / 1000.0, 2),
+                "contraction_s", roundTo((duration - commonPeakTime) / 1000.0, 2),
+                "form_density", roundTo(localDensity, 3)
+            ]);
+        } else {
+            stateMessage = stateMessage.concat(["rest_s", roundTo(rest / 1000.0, 2)]);
+        }
+        outlet(4, stateMessage);
+    } else {
+        outlet(4, [
+            profile.name,
+            "skip",
+            "clock", primary ? clockCycle.name : "residue",
             "duration_s", roundTo(duration / 1000.0, 2),
             "rest_s", roundTo(rest / 1000.0, 2)
         ]);
-    } else {
-        outlet(4, [profile.name, "skip", "rest_s", roundTo(rest / 1000.0, 2)]);
     }
 
     voiceTasks[index].schedule(scaledTime(duration + rest));
@@ -460,19 +585,27 @@ function runBreath() {
     if (!running) {
         return;
     }
-    var duration = clamp(logNormal(7800, 0.34), 3000, 15500);
-    var attack = duration * randomRange(0.28, 0.52);
-    var hold = duration * randomRange(0.03, 0.12);
+    var cycle = sampleClockCycle(breathClockState);
+    breathClockState = cycle.nextState;
+    var duration = cycle.interval;
+    var attack = sampleExpansion();
+    var hold = randomRange(120.0, 520.0);
     var release = Math.max(450, duration - attack - hold);
-    var amplitude = randomRange(0.025, 0.075) * (0.55 + 0.55 * densityValue);
+    var localDensity = effectiveDensity();
+    var amplitude = randomRange(0.025, 0.075) * (0.55 + 0.55 * localDensity);
     outlet(3, [
         "breath", roundTo(amplitude, 6),
         roundTo(scaledTime(attack), 1),
         roundTo(scaledTime(hold), 1),
         roundTo(scaledTime(release), 1)
     ]);
-    var rest = clamp(700 + exponential(3900 * (1.25 - 0.55 * densityValue)), 700, 12000);
-    breathTask.schedule(scaledTime(duration + rest));
+    breathTask.schedule(scaledTime(duration));
+    outlet(4, [
+        "noise-breath",
+        "clock", cycle.name,
+        "expansion_s", roundTo(attack / 1000.0, 2),
+        "contraction_s", roundTo((duration - attack) / 1000.0, 2)
+    ]);
 }
 
 function runRumble() {
@@ -483,7 +616,8 @@ function runRumble() {
     var attack = duration * randomRange(0.20, 0.45);
     var hold = duration * randomRange(0.04, 0.15);
     var release = Math.max(500, duration - attack - hold);
-    var amplitude = randomRange(0.060, 0.200) * (0.50 + 0.65 * densityValue);
+    var localDensity = effectiveDensity();
+    var amplitude = randomRange(0.060, 0.200) * (0.50 + 0.65 * localDensity);
     var rate1 = randomUnit() < 0.35 ? randomRange(5.2, 6.0) : randomRange(7.6, 8.4);
     var rate2 = randomUnit() < 0.22 ? randomRange(18.3, 19.7) : randomRange(11.7, 12.8);
     var cutoff = randomRange(105, 245);
@@ -496,7 +630,7 @@ function runRumble() {
         roundTo(rate2 * tempoScale, 3),
         roundTo(cutoff, 1)
     ]);
-    var rest = clamp(1200 + exponential(3600 * (1.20 - 0.45 * densityValue)), 1200, 10500);
+    var rest = clamp(1200 + exponential(3600 * (1.20 - 0.45 * localDensity)), 1200, 10500);
     rumbleTask.schedule(scaledTime(duration + rest));
 }
 
@@ -516,7 +650,8 @@ function runRadio() {
     var release = Math.max(300, duration - attack - hold);
     var q = randomRange(5.0, 28.0);
     var modulationRate = randomUnit() < 0.18 ? randomRange(7.5, 12.5) : randomRange(0.55, 5.8);
-    var amplitude = randomRange(0.070, 0.300) * (0.45 + 0.70 * densityValue);
+    var localDensity = effectiveDensity();
+    var amplitude = randomRange(0.070, 0.300) * (0.45 + 0.70 * localDensity);
     outlet(3, [
         "radio",
         roundTo(startCentre, 2),
@@ -529,7 +664,7 @@ function runRadio() {
         roundTo(scaledTime(hold), 1),
         roundTo(scaledTime(release), 1)
     ]);
-    var rest = clamp(1800 + exponential(5200 * (1.25 - 0.55 * densityValue)), 1800, 15000);
+    var rest = clamp(1800 + exponential(5200 * (1.25 - 0.55 * localDensity)), 1800, 15000);
     radioTask.schedule(scaledTime(duration + rest));
 }
 
@@ -537,11 +672,12 @@ function runDust() {
     if (!running) {
         return;
     }
-    if (randomUnit() < 0.28 + 0.70 * densityValue) {
+    var localDensity = effectiveDensity();
+    if (randomUnit() < 0.28 + 0.70 * localDensity) {
         var centres = [390.0, 560.0, 838.0, 1023.0, 1220.0, 1680.0, 2410.0, 3422.0, 5472.0];
         var centre = centres[randomInt(0, centres.length - 1)];
         centre *= Math.pow(2.0, gaussian() * 12.0 / 1200.0);
-        var amplitude = randomRange(0.150, 0.650) * (0.40 + 0.75 * densityValue);
+        var amplitude = randomRange(0.150, 0.650) * (0.40 + 0.75 * localDensity);
         var decay = randomRange(45, 720);
         var q = randomRange(4.0, 32.0);
         // Ordering is chosen so unpack emits centre and Q before amplitude.
@@ -553,7 +689,7 @@ function runDust() {
             roundTo(centre, 2)
         ]);
     }
-    var meanInterval = 2800 / Math.max(0.25, 0.42 + densityValue);
+    var meanInterval = 2800 / Math.max(0.25, 0.42 + localDensity);
     var next = clamp(exponential(meanInterval), 260, 10500);
     dustTask.schedule(scaledTime(next));
 }
